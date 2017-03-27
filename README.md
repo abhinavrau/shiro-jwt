@@ -2,6 +2,15 @@
 
 Shiro-jwt is a library that allows to use apache shiro with JWT (Json Web Tokens).
 
+Fork of https://github.com/panchitoboy/shiro-jwt with the following modifications:
+
+- Modified FormRealm so it only authenticates
+- Created  JWT includes roles of the user
+- Modified JWTRealm to parse incoming JWT for roles
+- Modified Test cases so it uses Roles (Fixed ShiroInterceptor)
+- Moved JWT Creation and Validation to a seperate class
+- Expose JWT session timeout, issuer and secret key used for MAC validation as properties in shiro.ini
+
 ### Dependencies:
 - shiro-core: Shiro core module
 - shiro-web: Shiro web module
