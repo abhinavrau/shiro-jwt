@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/abhinavrau/shiro-jwt.svg?branch=master)](https://travis-ci.org/abhinavrau/shiro-jwt)
 # shiro-jwt
 
 Shiro-jwt is a library that allows to use apache shiro with JWT (Json Web Tokens).
