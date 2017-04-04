@@ -48,7 +48,7 @@ passwordMatcher = org.apache.shiro.authc.credential.PasswordMatcher
 passwordMatcher.passwordService = $passwordService 
 formRealm.credentialsMatcher = $passwordMatcher
 
-<b>jwtService = com.github.panchitoboy.shiro.jwt.JWTGeneratorVerifier
+<b>jwtService = com.github.panchitoboy.shiro.jwt.JwtService
 jwtService.expirationSeconds = 10
 jwtService.issuer = testApp
 jwtService.secretKey = 72AC05536733581EA598CB31BA044D7D03A16B6057093DCF2B780A505607FF7

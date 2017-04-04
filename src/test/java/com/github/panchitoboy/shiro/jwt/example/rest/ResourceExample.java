@@ -1,7 +1,7 @@
 package com.github.panchitoboy.shiro.jwt.example.rest;
 
 import com.github.panchitoboy.shiro.interceptor.SecurityChecked;
-import com.github.panchitoboy.shiro.jwt.JWTGeneratorVerifier;
+import com.github.panchitoboy.shiro.jwt.JwtService;
 import com.github.panchitoboy.shiro.jwt.example.entity.UserDefaultExample;
 import com.github.panchitoboy.shiro.jwt.repository.TokenResponse;
 import org.apache.shiro.SecurityUtils;
@@ -9,6 +9,7 @@ import org.apache.shiro.authz.annotation.RequiresRoles;
 
 import javax.ejb.Stateless;
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.json.Json;
 import javax.json.JsonObjectBuilder;
 import javax.ws.rs.GET;
@@ -25,13 +26,10 @@ public class ResourceExample {
 
     public static final String MESSAGE = "It works!!";
 
-
+    @Named("jwtService")
     @Inject
-    JWTGeneratorVerifier jwtService;
+    JwtService jwtService;
 
-    public void setJwtService(JWTGeneratorVerifier jwtGeneratorVerifier) {
-        this.jwtService = jwtGeneratorVerifier;
-    }
 
     @POST
     @Path("login")

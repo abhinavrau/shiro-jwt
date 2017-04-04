@@ -24,6 +24,7 @@ public class UserDefaultExample implements UserDefault {
     private String id;
     private String userId;
     private String password;
+    private String host;
 
     @Override
     @JsonIgnore
@@ -77,4 +78,16 @@ public class UserDefaultExample implements UserDefault {
     public void setPassword(String password) {
         this.password = password;
     }
+
+    @Override
+    @JsonIgnore
+    public String getHost() {
+        return null;
+    }
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+
 }

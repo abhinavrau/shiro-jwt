@@ -11,6 +11,8 @@ import org.apache.shiro.authc.AuthenticationToken;
 import org.apache.shiro.authc.UsernamePasswordToken;
 import org.apache.shiro.web.filter.authc.AuthenticatingFilter;
 import org.apache.shiro.web.util.WebUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 import javax.servlet.ServletRequest;
@@ -28,6 +30,8 @@ import java.io.IOException;
  * This also sets the Login URL in case a redirect is required when session expires etc.
  */
 public final class JWTOrFormAuthenticationFilter extends AuthenticatingFilter {
+
+    public static final Logger logger = LoggerFactory.getLogger(JWTOrFormAuthenticationFilter.class);
 
     public static final String USER_ID = "userId";
     public static final String PASSWORD = "password";
@@ -76,10 +80,14 @@ public final class JWTOrFormAuthenticationFilter extends AuthenticatingFilter {
                 JSONObject json = (JSONObject) parser.parse(request.getInputStream());
                 String username = (String)json.get(USER_ID);
                 String password = (String)json.get(PASSWORD);
-                return new UsernamePasswordToken(username, password);
+                UsernamePasswordToken usernamePasswordToken = new UsernamePasswordToken(username, password);
+                usernamePasswordToken.setHost(request.getRemoteHost());
+                usernamePasswordToken.setRememberMe(false);
+                return usernamePasswordToken;
 
             }catch (ParseException ex)
             {
+                logger.error("ParseException parsing Login JSON string", ex);
                 throw new IOException("Could not parse JSON", ex);
             }
         }
@@ -87,7 +95,7 @@ public final class JWTOrFormAuthenticationFilter extends AuthenticatingFilter {
         if (isLoggedAttempt(request, response)) {
             String jwtToken = getAuthzHeader(request);
             if (jwtToken != null) {
-                return createJWTToken(jwtToken);
+                return createJWTToken(jwtToken, request);
             }
         }
 
@@ -116,20 +124,23 @@ public final class JWTOrFormAuthenticationFilter extends AuthenticatingFilter {
     /**
      * Create the Shiro {@link JWTAuthenticationToken} from the received JWT string
      *
-     * @param  base64 encoded JWT Token
+     * @param  token  Base64 encoded JWT Token
+     * @param request the servletRequest
      * @return JWTAuthenticationToken
      * @throws AuthenticationException if JWT token cannot be parsed or has 'none' set as algorithm
      */
-    public AuthenticationToken createJWTToken(String token) {
+    public AuthenticationToken createJWTToken(String token, ServletRequest request) {
         try {
             SignedJWT jwsObject = SignedJWT.parse(token);
             if(jwsObject.getHeader().getAlgorithm().equals(JWSAlgorithm.NONE))
             {
+                logger.warn("JSON token with 'none' algorithm passed in. POSSIBLE DOWNGRADE ATTACK from IP={}, ", request.getRemoteAddr());
                 throw new AuthenticationException("JWT Token Algorithm cannot be set to 'none'");
             }
             return new JWTAuthenticationToken(jwsObject.getJWTClaimsSet().getSubject(), jwsObject);
 
         } catch (java.text.ParseException ex) {
+            logger.error("ParseException parsing JWT token = {}", token, ex);
             throw new AuthenticationException(ex);
         }
 
