@@ -1,6 +1,7 @@
 package com.github.panchitoboy.shiro.jwt.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.panchitoboy.shiro.jwt.JwtService;
 import com.github.panchitoboy.shiro.jwt.example.boundary.UserRepositoryExample;
 import com.github.panchitoboy.shiro.jwt.example.entity.UserDefaultExample;
 import com.github.panchitoboy.shiro.jwt.example.jackson.MixInExample;
@@ -8,6 +9,11 @@ import com.github.panchitoboy.shiro.jwt.example.jackson.ObjectMapperProviderExam
 import com.github.panchitoboy.shiro.jwt.example.rest.JAXRSConfigurationExample;
 import com.github.panchitoboy.shiro.jwt.example.rest.ResourceExample;
 import com.github.panchitoboy.shiro.jwt.repository.TokenResponse;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import org.glassfish.jersey.jackson.JacksonFeature;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
@@ -26,6 +32,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import javax.inject.Inject;
+import javax.inject.Named;
 import javax.json.JsonObject;
 import javax.ws.rs.NotAuthorizedException;
 import javax.ws.rs.client.*;
@@ -36,6 +44,8 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
+import java.text.ParseException;
+import java.util.Date;
 
 @RunWith(Arquillian.class)
 @RunAsClient
@@ -43,6 +53,10 @@ public class JWTOrFormAuthenticationFilterTest {
 
     private static String token;
     private ObjectMapper objectMapper;
+
+    @Inject
+    @Named("jwtService")
+    private JwtService jwtService;
 
     @Deployment
     public static Archive<?> deployment() {
@@ -125,18 +139,33 @@ public class JWTOrFormAuthenticationFilterTest {
     }
 
 
+
     @Test(expected = NotAuthorizedException.class)
     @InSequence(4)
-    public void securedTokenExpired() throws IOException {
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-        }
+    public void securedTokenExpired() throws IOException, ParseException, JOSEException {
 
+        String expiredToken = generateNewJWT(token, new Date());
         Invocation.Builder invocationBuilder = target.path("/secured").request().accept(MediaType.APPLICATION_JSON);
-        invocationBuilder.header("Authorization", token);
+        invocationBuilder.header("Authorization", expiredToken);
         invocationBuilder.get(JsonObject.class);
+    }
+
+    private String generateNewJWT(String token, Date expiration) throws ParseException, JOSEException {
+
+        SignedJWT currentJwsObject = SignedJWT.parse(token);
+
+        // Create a claimsset with the new expiration time
+        JWTClaimsSet.Builder claimsBuilder = new JWTClaimsSet.Builder(currentJwsObject.getJWTClaimsSet());
+        claimsBuilder.expirationTime(expiration);
+        claimsBuilder.notBeforeTime(expiration);
+        claimsBuilder.issueTime(expiration);
+        // Create a new JWT token based on the old one
+        SignedJWT expiredJwsObject = new SignedJWT(currentJwsObject.getHeader(), claimsBuilder.build());
+
+        // Sign it with the key so it is valid
+        JWSSigner signer = new MACSigner("72AC05536733581EA598CB31BA044D7D03A16B6057093DCF2B780A505607FF7");
+        expiredJwsObject.sign(signer);
+        return expiredJwsObject.serialize();
     }
 
     @Test

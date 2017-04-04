@@ -40,4 +40,6 @@ public class JWTAuthenticationToken implements AuthenticationToken {
         this.token = token;
     }
 
+
+
 }
