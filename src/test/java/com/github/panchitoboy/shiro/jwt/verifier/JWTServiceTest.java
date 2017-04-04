@@ -1,36 +1,40 @@
 package com.github.panchitoboy.shiro.jwt.verifier;
 
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.JWSHeader;
-import com.nimbusds.jose.JWSObject;
-import com.nimbusds.jose.JWSSigner;
-import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.Payload;
+import com.github.panchitoboy.shiro.jwt.JwtService;
+import com.nimbusds.jose.*;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
-import java.io.IOException;
-import java.security.SecureRandom;
-import java.text.ParseException;
-import java.util.Date;
-import java.util.UUID;
+import org.apache.shiro.codec.Hex;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-@RunWith(JUnit4.class)
-public class JWTServiceTest {
+import java.io.IOException;
+import java.security.SecureRandom;
+import java.text.ParseException;
+import java.util.Date;
+import java.util.UUID;
 
-    static byte[] sharedKey;
+@RunWith(JUnit4.class)
+public class JwtServiceTest {
+
+    static String sharedKey;
+
+
+    static JwtService jwtService = new JwtService();
 
     @BeforeClass
     public static void testing() throws IOException {
         SecureRandom random = new SecureRandom();
-        sharedKey = new byte[32];
-        random.nextBytes(sharedKey);
+        byte[] byteKey = new byte[32];
+        random.nextBytes(byteKey);
+        sharedKey = Hex.encodeToString(byteKey);
+        jwtService.setSecretKey(sharedKey);
+        jwtService.setAlgorithm(JWSAlgorithm.HS256.getName());
+
     }
 
     @Test
@@ -48,10 +52,10 @@ public class JWTServiceTest {
         String token = jwsObject.serialize();
 
         SignedJWT signed = SignedJWT.parse(token);
-        JWSVerifier verifier = new MACVerifierExtended(sharedKey, signed.getJWTClaimsSet());
-        signed.verify(verifier);
 
-        Assert.assertTrue("Must be valid", signed.verify(verifier));
+
+        Assert.assertTrue("Must be valid", jwtService.validateToken(signed));
+        Assert.assertTrue("Must be valid", jwtService.isNotExpired(signed));
     }
 
     @Test
@@ -69,10 +73,10 @@ public class JWTServiceTest {
         String token = jwsObject.serialize();
 
         SignedJWT signed = SignedJWT.parse(token);
-        JWSVerifier verifier = new MACVerifierExtended(sharedKey, signed.getJWTClaimsSet());
-        signed.verify(verifier);
 
-        Assert.assertFalse("Must be invalid", signed.verify(verifier));
+
+        Assert.assertTrue("Must be valid", jwtService.validateToken(signed));
+        Assert.assertFalse("Must be invalid", jwtService.isNotExpired(signed));
     }
 
     @Test
@@ -90,10 +94,9 @@ public class JWTServiceTest {
         String token = jwsObject.serialize();
 
         SignedJWT signed = SignedJWT.parse(token);
-        JWSVerifier verifier = new MACVerifierExtended(sharedKey, signed.getJWTClaimsSet());
-        signed.verify(verifier);
 
-        Assert.assertFalse("Must be invalid", signed.verify(verifier));
+        Assert.assertTrue("Must be valid", jwtService.validateToken(signed));
+        Assert.assertFalse("Must be invalid", jwtService.isNotExpired(signed));
     }
 
     private JWTClaimsSet getJWTClaimsSet(String issuer, String subject, Date issueTime, Date notBeforeTime, Date expirationTime) {

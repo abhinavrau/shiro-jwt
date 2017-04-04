@@ -25,10 +25,9 @@ import java.util.UUID;
 @ShiroIni
 @Singleton
 @Named("jwtService")
-public class JWTService {
+public class JwtService {
 
-    Logger logger = LoggerFactory.getLogger(JWTService.class);
-
+    Logger logger = LoggerFactory.getLogger(JwtService.class);
 
 
     private long expirationSeconds = 5;
@@ -37,6 +36,15 @@ public class JWTService {
 
     private String secretKey = "72AC05536733581EA598CB31BA044D7D03A16B6057093DCF2B780A505607FF7"; // Needs to sufficiently long and random
 
+    public String getAlgorithm() {
+        return algorithm;
+    }
+
+    public void setAlgorithm(String algorithm) {
+        this.algorithm = algorithm;
+    }
+
+    private String algorithm = JWSAlgorithm.HS256.getName();
 
     public void setExpirationSeconds(long expirationSeconds) {
         this.expirationSeconds = expirationSeconds;
@@ -66,8 +74,8 @@ public class JWTService {
     }
 
     public TokenResponse createToken(UserDefault user) {
-        TokenResponse response = new TokenResponse(user, createJWT(user.getPrincipal(), user.getHost(), user.getRoles()));
-        return response;
+        return  new TokenResponse(user, createJWT(user.getPrincipal(), user.getHost(), user.getRoles()));
+
     }
 
     protected String createJWT(Object userId, String clientAddress, Set<String> roles) {
@@ -86,7 +94,7 @@ public class JWTService {
 
             JWTClaimsSet claimsSet = builder.build();
 
-            JWSHeader header = new JWSHeader(JWSAlgorithm.HS256);
+            JWSHeader header = new JWSHeader(JWSAlgorithm.parse(algorithm));
 
             Payload payload = new Payload(claimsSet.toJSONObject());
 
@@ -118,18 +126,14 @@ public class JWTService {
     public boolean isNotExpired(SignedJWT signed)
     {
         long time = System.currentTimeMillis();
-        boolean isNotExpired = false;
-        try {
-            isNotExpired = signed.getJWTClaimsSet().getNotBeforeTime().getTime() <= time && time < signed.getJWTClaimsSet().getExpirationTime().getTime();
-            if (false == isNotExpired)
-            {
 
-            }
+        try {
+            return signed.getJWTClaimsSet().getNotBeforeTime().getTime() <= time && time < signed.getJWTClaimsSet().getExpirationTime().getTime();
         } catch (ParseException e) {
-            e.printStackTrace();
+            logger.error("ParseException parsing JWT for expired time", e);
+            return false;
         }
 
-        return isNotExpired;
 
     }
 
